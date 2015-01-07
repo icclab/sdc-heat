@@ -1,0 +1,94 @@
+# Copyright 2014 Zuercher Hochschule fuer Angewandte Wissenschaften
+# All Rights Reserved.
+#
+#    Licensed under the Apache License, Version 2.0 (the "License"); you may
+#    not use this file except in compliance with the License. You may obtain
+#    a copy of the License at
+#
+#         http://www.apache.org/licenses/LICENSE-2.0
+#
+#    Unless required by applicable law or agreed to in writing, software
+#    distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+#    WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+#    License for the specific language governing permissions and limitations
+#    under the License.
+heat_template_version: 2013-05-23
+
+description: Heat template to deploy a SmartMachine and a KVM Machine in SDC
+
+parameters:
+  sapi_endpoint:
+    type: string
+    default: 10.0.0.26
+    description : The admin-IP address of the sapi instance
+
+  user_uuid:
+    type: string
+    default: ca50e0a6-0f87-c911-fb01-e139514f760f
+    description: UUID of the owner of the machines
+
+  smart_machine_alias:
+    type: string
+    default: ""
+    description: Alias for the smart machine
+
+  kvm_alias:
+    type: string
+    default: ""
+    description: Alias for the kvm machine
+
+  package:
+    type: string
+    default: a8c2033d-e8eb-c17e-83ce-b10e36f1339b
+    description: The package uuid to use
+
+  smart_machine_image:
+    type: string
+    default: 859e9466-7ef4-11e4-b103-27886e7d9a7d
+    description: The image uuid to use for the smart machine
+
+  kvm_image:
+    type: string
+    default: b1df4936-7a5c-11e4-98ed-dfe1fa3a813a
+    description: The image uuid to use for the kvm machine
+
+  networks:
+    type: string
+    default: f27c02f1-5b4c-4ef1-b463-59c7e60f02e5
+    description: The network uuid to use
+
+resources:
+  MyFirstSmartMachine:
+    type: SDC::Compute::SmartMachine
+    properties:
+      sapi_endpoint: { get_param: sapi_endpoint }
+      user_uuid: { get_param: user_uuid }
+      instance_alias: { get_param: smart_machine_alias }
+      package: { get_param: package }
+      image: { get_param: smart_machine_image }
+      networks: { get_param: networks }
+      user_script:
+        str_replace:
+          template: |
+            #!/usr/bin/env bash
+            cat > /testfile <<EOF
+            sapi_endpoint: %sapi_endpoint%
+            user_uuid: %user_uuid%
+            instance_alias: %instance_alias%
+            package: %package%
+            image: %image%
+            networks: %networks%
+            EOF
+          params:
+            "%sapi_endpoint%": { get_param: sapi_endpoint }
+            "%user_uuid%": { get_param: user_uuid }
+            "%instance_alias%": { get_param: smart_machine_alias }
+            "%package%": { get_param: package }
+            "%image%": { get_param: smart_machine_image }
+            "%networks%": { get_param: networks }
+
+
+outputs:
+  SmartMachine_IP:
+    description: The IP address of the smart machine
+    value: { get_attr: [ MyFirstSmartMachine, network_ip ] }
