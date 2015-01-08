@@ -1,4 +1,6 @@
 # OpenStack Heat for SDC
+Uses: sdcadmin (https://github.com/icclab/sdcadmin) package
+
 ## Step 1 - Create KVM-VM for OpenStack Services
 Create a KVM-VM with the following Parameters:
 
