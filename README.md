@@ -80,7 +80,7 @@ Setup is complete, you now can start stacks with those resources. Example heat-t
 # Licence
 
 ```
-# Copyright 2014 Zuercher Hochschule fuer Angewandte Wissenschaften
+# Copyright 2015 Zuercher Hochschule fuer Angewandte Wissenschaften
 # All Rights Reserved.
 #
 #    Licensed under the Apache License, Version 2.0 (the "License"); you may
