@@ -57,7 +57,7 @@ $ heat stack-list
 ```
 
 ## Step 5 - Install sdcadmin library & Heat plugin
-Copy the sdcadmin lib to ```/usr/lib/python2.7/site-packages/sdcadmin```
+Copy the [sdcadmin lib](https://github.com/icclab/sdcadmin) to ```/usr/lib/python2.7/site-packages/sdcadmin```
 Copy the heat plugin to /usr/lib/heat
 
 ```
