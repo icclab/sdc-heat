@@ -57,12 +57,12 @@ $ heat stack-list
 ```
 
 ## Step 5 - Install sdcadmin library & Heat plugin
-Copy the lib to ```/usr/lib/python2.7/site-packages/sdcadmin```
-Symlink the heat plugin:
+Copy the sdcadmin lib to ```/usr/lib/python2.7/site-packages/sdcadmin```
+Copy the heat plugin to /usr/lib/heat
 
 ```
 mkdir -p /usr/lib/heat
-ln -s /usr/lib/python2.7/site-packages/sdc_plugin.py /usr/lib/heat/sdc_plugin.py
+cp PATH/TO/sdc_plugin.py /usr/lib/heat/sdc_plugin.py
 ```
 Then restart the heat engine service:
 
