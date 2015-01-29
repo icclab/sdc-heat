@@ -11,7 +11,7 @@ Create a KVM-VM with the following Parameters:
 * Secondary NIC to admin network
 
 ## Step 2 - Installing Packstack
-SSH as root into the machine once provisioned:
+SSH as root into the machine once provisioned. Make sure networking is working (in my setup the default gateway was missing), then run:
 
 ```
 yum update -y
@@ -71,6 +71,9 @@ Copy the heat plugin to /usr/lib/heat
 mkdir -p /usr/lib/heat
 cp PATH/TO/sdc_plugin.py /usr/lib/heat/sdc_plugin.py
 ```
+
+Let Heat know where to look for plugins by uncommenting the ```plugin_dirs``` line in ```/etc/heat/heat.conf```
+
 Then restart the heat engine service:
 
 ```
