@@ -32,11 +32,6 @@ parameters:
     default: ""
     description: Alias for the smart machine
 
-  kvm_alias:
-    type: string
-    default: ""
-    description: Alias for the kvm machine
-
   package:
     type: string
     default: a8c2033d-e8eb-c17e-83ce-b10e36f1339b
