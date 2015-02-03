@@ -27,11 +27,6 @@ parameters:
     default: ca50e0a6-0f87-c911-fb01-e139514f760f
     description: UUID of the owner of the machines
 
-  smart_machine_alias:
-    type: string
-    default: ""
-    description: Alias for the smart machine
-
   kvm_alias:
     type: string
     default: ""
@@ -41,11 +36,6 @@ parameters:
     type: string
     default: a8c2033d-e8eb-c17e-83ce-b10e36f1339b
     description: The package uuid to use
-
-  smart_machine_image:
-    type: string
-    default: 859e9466-7ef4-11e4-b103-27886e7d9a7d
-    description: The image uuid to use for the smart machine
 
   kvm_image:
     type: string

@@ -42,11 +42,6 @@ parameters:
     default: 859e9466-7ef4-11e4-b103-27886e7d9a7d
     description: The image uuid to use for the smart machine
 
-  kvm_image:
-    type: string
-    default: b1df4936-7a5c-11e4-98ed-dfe1fa3a813a
-    description: The image uuid to use for the kvm machine
-
   networks:
     type: string
     default: f27c02f1-5b4c-4ef1-b463-59c7e60f02e5
