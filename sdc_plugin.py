@@ -220,7 +220,8 @@ class SDCSmartNetwork(SDCNetwork):
         MASK_BITS: properties.Schema(
             properties.Schema.NUMBER,
             _('Number of Bits in the Netmask'),
-            required=True
+            required=False,
+            default=24
         ),
 
         DESCRIPTION: properties.Schema(
