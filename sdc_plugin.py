@@ -19,6 +19,7 @@ __author__ = 'ernm'
 from sdcadmin.datacenter import DataCenter
 
 import uuid
+from netaddr import IPNetwork
 
 from heat.engine import properties
 from heat.engine import resource
@@ -185,7 +186,79 @@ class SDCNetwork(resource.Resource):
 
         network = dc.get_network(self.resource_id)
 
+        if network == None:
+            return True
+
         network.delete()
+
+
+class SDCSmartNetwork(SDCNetwork):
+
+    PROPERTIES = (SAPI_ENDPOINT, OWNER_UUIDS, NAME, MASK_BITS, DESCRIPTION) = \
+        ('sapi_endpoint', 'owner_uuids', 'name', 'mask_bits', 'description')
+
+    properties_schema = {
+
+        SAPI_ENDPOINT: properties.Schema(
+            properties.Schema.STRING,
+            _('The URL for the RESTful Service API.'),
+            required=True
+        ),
+
+        OWNER_UUIDS: properties.Schema(
+            properties.Schema.STRING,
+            _('UUIDs of the new network, comma separated.'),
+            required=True
+        ),
+
+        NAME: properties.Schema(
+            properties.Schema.STRING,
+            _('The network name.'),
+            required=True
+        ),
+
+        MASK_BITS: properties.Schema(
+            properties.Schema.NUMBER,
+            _('Number of Bits in the Netmask'),
+            required=True
+        ),
+
+        DESCRIPTION: properties.Schema(
+            properties.Schema.STRING,
+            _('Description for the new network.'),
+            required=False,
+            default=''
+        )
+    }
+
+    def handle_create(self):
+
+        dc = self._get_dc()
+
+
+
+        sapi_endpoint = self.properties.get(self.SAPI_ENDPOINT)
+        owner_uuids = self.properties.get(self.OWNER_UUIDS)
+        name = self.properties.get(self.NAME) + '.' + uuid.uuid4().__str__()
+        mask_bits = self.properties.get(self.MASK_BITS)
+        description = self.properties.get(self.DESCRIPTION)
+
+        logger.debug(_("Trying to create a Network with "
+                       "sapi_endpoint: %s, "
+                       "owner_uuids: %s, "
+                       "name: %s, "
+                       "mask_bits: %s, "
+                       "description: %s") % (sapi_endpoint, owner_uuids, name, mask_bits, description))
+        network = dc.create_smart_network(name, owner_uuids, mask_bits=mask_bits, description=description)
+
+        logger.debug(_("Network created %s") % network)
+
+        self.resource_id_set(network.uuid)
+
+        return network.uuid
+
+
+
 
 class SDCMachine(resource.Resource):
     PROPERTIES = (SAPI_ENDPOINT, USER_UUID, INSTANCE_ALIAS, PACKAGE, IMAGE, NETWORKS, USER_SCRIPT) = \
@@ -415,5 +488,6 @@ def resource_mapping():
     return {
         'SDC::Compute::SmartMachine': SDCSmartMachine,
         'SDC::Compute::KVM': SDCKVM,
-        'SDC::Network::Network': SDCNetwork
+        'SDC::Network::Network': SDCNetwork,
+        'SDC::Network::SmartNetwork': SDCSmartNetwork
     }
