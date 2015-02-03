@@ -27,6 +27,165 @@ from heat.openstack.common import log as logging
 
 logger = logging.getLogger(__name__)
 
+class SDCNetwork(resource.Resource):
+    PROPERTIES = (SAPI_ENDPOINT, OWNER_UUIDS, NAME, SUBNET, PROVISION_START, PROVISION_END, NIC_TAG, GATEWAY, VLAN,
+                  RESOLVERS, ROUTES, DESCRIPTION) = \
+        ('sapi_endpoint', 'owner_uuids', 'name', 'subnet', 'provision_start', 'provision_end', 'nic_tag', 'gateway',
+         'vlan', 'resolvers', 'routes', 'description')
+
+    properties_schema = {
+
+        SAPI_ENDPOINT: properties.Schema(
+            properties.Schema.STRING,
+            _('The URL for the RESTful Service API.'),
+            required=True
+        ),
+
+        OWNER_UUIDS: properties.Schema(
+            properties.Schema.STRING,
+            _('UUIDs of the new network, comma separated.'),
+            required=True
+        ),
+
+        NAME: properties.Schema(
+            properties.Schema.STRING,
+            _('The network name.'),
+            required=True
+        ),
+        SUBNET: properties.Schema(
+            properties.Schema.STRING,
+            _('CIDR notation of the new network'),
+            required=True
+        ),
+
+        PROVISION_START: properties.Schema(
+            properties.Schema.STRING,
+            _('Provisioning range start IP'),
+            required=True
+        ),
+
+        PROVISION_END: properties.Schema(
+            properties.Schema.STRING,
+            _('Provisioning range end IP'),
+            required=True
+        ),
+        NIC_TAG: properties.Schema(
+            properties.Schema.STRING,
+            _('NIC Tag for the new network.'),
+            required=True,
+            default='customer'
+        ),
+        GATEWAY: properties.Schema(
+            properties.Schema.STRING,
+            _('Gateway for the new network.'),
+            required=False,
+            default=''
+        ),
+        VLAN: properties.Schema(
+            properties.Schema.INTEGER,
+            _('VLAN for the new network'),
+            required=False,
+            default=0
+        ),
+        RESOLVERS: properties.Schema(
+            properties.Schema.STRING,
+            _('DNS servers for the new network, comma separated.'),
+            required=False,
+            default=''
+        ),
+        ROUTES: properties.Schema(
+            properties.Schema.STRING,
+            _('Routes for the new network, dest:via pairs, comma separated'),
+            required=False,
+            default=''
+        ),
+        DESCRIPTION: properties.Schema(
+            properties.Schema.STRING,
+            _('Description for the new network.'),
+            required=False,
+            default=''
+        )
+    }
+
+    attributes_schema = {
+        'uuid': _('uuid')
+    }
+
+    def _get_dc(self):
+        dc = DataCenter(sapi=self.properties.get(self.SAPI_ENDPOINT))
+        # TODO: add grace period, i.e. retries=3
+        # if dc.healthcheck_vmapi() != True:
+        #     raise Exception('VMAPI not healthy')
+        return dc
+
+    def _resolve_attribute(self, name):
+
+        dc = self._get_dc()
+        logger.debug("lookup for %s, resource_id: %s" % (name, self.resource_id))
+        network = dc.get_network(self.resource_id)
+        logger.debug("network: %s" % network)
+        if network:
+            return getattr(network, name)
+
+    def handle_create(self):
+
+        dc = self._get_dc()
+
+        sapi_endpoint = self.properties.get(self.SAPI_ENDPOINT)
+        owner_uuids = self.properties.get(self.OWNER_UUIDS)
+        name = self.properties.get(self.NAME)
+        subnet = self.properties.get(self.SUBNET)
+        provision_start = self.properties.get(self.PROVISION_START)
+        provision_end = self.properties.get(self.PROVISION_END)
+        nic_tag = self.properties.get(self.NIC_TAG)
+        gateway = self.properties.get(self.GATEWAY)
+        vlan = self.properties.get(self.VLAN)
+        resolvers = self.properties.get(self.RESOLVERS).split(',')
+        routes = self.properties.get(self.ROUTES)
+        tupel_obj = {}
+        for tupel in routes.split(','):
+            k, v = tupel.split(':')
+            tupel_obj[k] = v
+        routes = tupel_obj
+        description = self.properties.get(self.DESCRIPTION)
+
+        logger.debug(_("Trying to create a Network with "
+                       "sapi_endpoint: %s, "
+                       "owner_uuids: %s, "
+                       "name: %s, "
+                       "subnet: %s, "
+                       "provision_start: %s, "
+                       "provision_end: %s, "
+                       "nic_tag: %s, "
+                       "gateway: %s, "
+                       "vlan: %s, "
+                       "resolvers: %s, "
+                       "routes: %s, "
+                       "description: %s") % (sapi_endpoint, owner_uuids, name, subnet, provision_start, provision_end,
+                                         nic_tag, gateway, vlan, resolvers, routes, description))
+        network = dc.create_network(name, owner_uuids, subnet, provision_start, provision_end, nic_tag, gateway, vlan,
+                                    resolvers, routes,  description)
+
+        logger.debug(_("Network created %s") % network)
+
+        self.resource_id_set(network.uuid)
+
+        return network.uuid
+
+
+    def handle_delete(self):
+        logger.debug(_("Delete network %s") % self.resource_id)
+
+        dc = self._get_dc()
+
+        # enables to delete a stack if it was not created successfully, e.a. no resource_id
+        if self.resource_id is None:
+            logger.debug(_("Delete: resource_id is empty - nothing to do, exiting."))
+            return
+
+        network = dc.get_network(self.resource_id)
+
+        network.delete()
 
 class SDCMachine(resource.Resource):
     PROPERTIES = (SAPI_ENDPOINT, USER_UUID, INSTANCE_ALIAS, PACKAGE, IMAGE, NETWORKS, USER_SCRIPT) = \
@@ -42,7 +201,7 @@ class SDCMachine(resource.Resource):
 
         USER_UUID: properties.Schema(
             properties.Schema.STRING,
-            _('The username in the CloudSigma Cloud.'),
+            _('User UUID.'),
             required=True
         ),
 
@@ -78,6 +237,13 @@ class SDCMachine(resource.Resource):
         )
 
     }
+
+    def _get_dc(self):
+        dc = DataCenter(sapi=self.properties.get(self.SAPI_ENDPOINT))
+        # TODO: add grace period, i.e. retries=3
+        # if dc.healthcheck_vmapi() != True:
+        #     raise Exception('VMAPI not healthy')
+        return dc
 
     def _resolve_attribute(self, name):
 
@@ -248,5 +414,6 @@ class SDCKVM(SDCMachine):
 def resource_mapping():
     return {
         'SDC::Compute::SmartMachine': SDCSmartMachine,
-        'SDC::Compute::KVM': SDCKVM
+        'SDC::Compute::KVM': SDCKVM,
+        'SDC::Network::Network': SDCNetwork
     }

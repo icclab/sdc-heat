@@ -1,0 +1,101 @@
+# Copyright 2015 Zuercher Hochschule fuer Angewandte Wissenschaften
+# All Rights Reserved.
+#
+#    Licensed under the Apache License, Version 2.0 (the "License"); you may
+#    not use this file except in compliance with the License. You may obtain
+#    a copy of the License at
+#
+#         http://www.apache.org/licenses/LICENSE-2.0
+#
+#    Unless required by applicable law or agreed to in writing, software
+#    distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+#    WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+#    License for the specific language governing permissions and limitations
+#    under the License.
+heat_template_version: 2013-05-23
+
+description: Heat template to deploy a network in SDC
+
+parameters:
+  sapi_endpoint:
+    type: string
+    default: 10.0.0.26
+    description : The admin-IP address of the sapi instance
+
+  owner_uuids:
+    type: string
+    default: 72f70341-b227-4051-befd-b0d5e1588a6d
+    description: UUIDs of the new network, comma separated
+
+  name:
+    type: string
+    default: foo_net
+    description: The network name
+
+  subnet:
+    type: string
+    default: 10.10.0.0/24
+    description: CIDR notation of the new network
+
+  provision_start:
+    type: string
+    default: 10.10.0.101
+    description: Provisioning range start IP
+
+  provision_end:
+    type: string
+    default: 10.10.0.200
+    description: Provisioning range end IP
+
+  nic_tag:
+    type: string
+    default: customer
+    description: NIC Tag for the new network
+
+  gateway:
+    type: string
+    default: 10.10.0.100
+    description: Gateway for the new network
+
+  vlan:
+    type: number
+    default: 1337
+    description: VLAN for the new network
+
+  resolvers:
+    type: string
+    default: 8.8.8.8,8.8.4.4
+    description: DNS servers for the new network, comma separated
+
+  routes:
+    type: string
+    default: 10.11.0.0/24:10.10.0.50
+    description: Routes for the new network, dest:via pairs, comma separated
+
+  description:
+    type: string
+    default: foo_net_desc
+    description: Description for the new network
+
+resources:
+  MyFirstNetwork:
+    type: SDC::Network::Network
+    properties:
+      sapi_endpoint: { get_param: sapi_endpoint }
+      owner_uuids: { get_param: owner_uuids }
+      name: { get_param: name }
+      subnet: { get_param: subnet }
+      provision_start: { get_param: provision_start }
+      provision_end: { get_param: provision_end }
+      nic_tag: { get_param: nic_tag }
+      gateway: { get_param: gateway }
+      vlan: { get_param: vlan }
+      resolvers: { get_param: resolvers }
+      routes: { get_param: routes }
+      description: { get_param: description }
+
+
+outputs:
+  Network_UUID:
+    description: The UUID of the network
+    value: { get_attr: [ MyFirstNetwork, uuid ] }
