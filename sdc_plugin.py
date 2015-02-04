@@ -402,6 +402,7 @@ class SDCMachine(resource.Resource):
             logger.debug(_("Delete: resource_id is empty - nothing to do, exiting."))
             return
 
+        logger.debug("Deleting machine with id %s" % self.resource_id)
         instance = dc.get_machine(self.resource_id)
 
         instance.delete()
@@ -411,6 +412,9 @@ class SDCMachine(resource.Resource):
         dc = self._get_dc()
 
         logger.debug(_("Check delete server %s") % self.resource_id)
+        if self.resource_id is None:
+            logger.debug(_("Delete: resource_id is empty - nothing to do, exiting."))
+            return True
         machine = dc.get_machine(self.resource_id)
         return machine.is_destroyed()
 
@@ -422,7 +426,7 @@ class SDCSmartMachine(SDCMachine):
         dc = self._get_dc()
 
         user_uuid = self.properties.get(self.USER_UUID)
-        networks = [self.properties.get(self.NETWORKS)]
+        networks = self.properties.get(self.NETWORKS).split(',')
         package = self.properties.get(self.PACKAGE)
         image = self.properties.get(self.IMAGE)
         alias = self.properties.get(self.INSTANCE_ALIAS)
@@ -459,7 +463,7 @@ class SDCKVM(SDCMachine):
         dc = self._get_dc()
 
         user_uuid = self.properties.get(self.USER_UUID)
-        networks = [self.properties.get(self.NETWORKS)]
+        networks = self.properties.get(self.NETWORKS).split(',')
         package = self.properties.get(self.PACKAGE)
         image = self.properties.get(self.IMAGE)
         alias = self.properties.get(self.INSTANCE_ALIAS)
