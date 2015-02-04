@@ -1,0 +1,247 @@
+# Copyright 2015 Zuercher Hochschule fuer Angewandte Wissenschaften
+# All Rights Reserved.
+#
+#    Licensed under the Apache License, Version 2.0 (the "License"); you may
+#    not use this file except in compliance with the License. You may obtain
+#    a copy of the License at
+#
+#         http://www.apache.org/licenses/LICENSE-2.0
+#
+#    Unless required by applicable law or agreed to in writing, software
+#    distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+#    WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+#    License for the specific language governing permissions and limitations
+#    under the License.
+heat_template_version: 2013-05-23
+
+description: Heat template to deploy a SmartMachine and a KVM Machine in SDC
+
+parameters:
+  sapi_endpoint:
+    type: string
+    default: 10.0.0.26
+    description : The admin-IP address of the sapi instance
+
+  user_uuid:
+    type: string
+    default: ca50e0a6-0f87-c911-fb01-e139514f760f
+    description: UUID of the owner of the machines
+
+  package:
+    type: string
+    default: b1abec1a-80e5-ea9e-e091-8f2d67feb252
+    description: The package uuid to use
+
+  smart_machine_image:
+    type: string
+    default: 62f148f8-6e84-11e4-82c5-efca60348b9f
+    description: The image uuid to use for the smart machine
+
+  kvm_image:
+    type: string
+    default: 02dbab66-a70a-11e4-819b-b3dc41b361d6
+    description: The image uuid to use for the kvm machine
+
+  external_network_uuid:
+    type: string
+    default: f3d68d27-e311-491a-9c7f-d2a8d386e6e6
+    description: The external network uuid to use
+
+  net_prefix:
+    type: string
+    default: foo_net
+    description: The network name
+
+  net_description:
+    type: string
+    default: foo_net_desc
+    description: Description for the new network
+
+resources:
+  sm_1:
+    type: SDC::Compute::SmartMachine
+    properties:
+      sapi_endpoint: { get_param: sapi_endpoint }
+      user_uuid: { get_param: user_uuid }
+      instance_alias: "sm_1"
+      package: { get_param: package }
+      image: { get_param: smart_machine_image }
+      networks:
+        Fn::Join:
+          - ","
+          - [get_param: external_network_uuid, get_attr: [ net_1, uuid ], get_attr: [ net_2, uuid ], get_attr: [ net_3, uuid ], get_attr: [ net_4, uuid ], get_attr: [ net_5, uuid ] ]
+      user_script:
+        str_replace:
+          template: |
+            #!/usr/bin/env bash
+            cat > /testfile <<EOF
+            sapi_endpoint: %sapi_endpoint%
+            user_uuid: %user_uuid%
+            instance_alias: %instance_alias%
+            package: %package%
+            image: %image%
+            networks: %networks%
+            EOF
+          params:
+            "%sapi_endpoint%": { get_param: sapi_endpoint }
+            "%user_uuid%": { get_param: user_uuid }
+            "%instance_alias%": "sm_1"
+            "%package%": { get_param: package }
+            "%image%": { get_param: smart_machine_image }
+            "%networks%":
+              Fn::Join:
+                - ","
+                - [get_param: external_network_uuid, get_attr: [ net_1, uuid ], get_attr: [ net_2, uuid ], get_attr: [ net_3, uuid ], get_attr: [ net_4, uuid ], get_attr: [ net_5, uuid ] ]
+  kvm_1:
+    type: SDC::Compute::KVM
+    properties:
+      sapi_endpoint: { get_param: sapi_endpoint }
+      user_uuid: { get_param: user_uuid }
+      instance_alias: "kvm_1"
+      package: { get_param: package }
+      image: { get_param: kvm_image }
+      networks:
+        Fn::Join:
+          - ","
+          - [get_param: external_network_uuid, get_attr: [ net_1, uuid ], get_attr: [ net_2, uuid ], get_attr: [ net_3, uuid ], get_attr: [ net_4, uuid ], get_attr: [ net_5, uuid ] ]
+      user_script:
+        str_replace:
+          template: |
+            #!/usr/bin/env bash
+            cat > /testfile <<EOF
+            sapi_endpoint: %sapi_endpoint%
+            user_uuid: %user_uuid%
+            instance_alias: %instance_alias%
+            package: %package%
+            image: %image%
+            networks: %networks%
+            EOF
+          params:
+            "%sapi_endpoint%": { get_param: sapi_endpoint }
+            "%user_uuid%": { get_param: user_uuid }
+            "%instance_alias%": "kvm_1"
+            "%package%": { get_param: package }
+            "%image%": { get_param: kvm_image }
+            "%networks%":
+              Fn::Join:
+                - ","
+                - [get_param: external_network_uuid, get_attr: [ net_1, uuid ], get_attr: [ net_2, uuid ], get_attr: [ net_3, uuid ], get_attr: [ net_4, uuid ], get_attr: [ net_5, uuid ] ]
+
+  sm_2:
+    type: SDC::Compute::SmartMachine
+    properties:
+      sapi_endpoint: { get_param: sapi_endpoint }
+      user_uuid: { get_param: user_uuid }
+      instance_alias: "sm_2"
+      package: { get_param: package }
+      image: { get_param: smart_machine_image }
+      networks:
+        Fn::Join:
+          - ","
+          - [get_param: external_network_uuid, get_attr: [ net_1, uuid ], get_attr: [ net_2, uuid ], get_attr: [ net_3, uuid ], get_attr: [ net_4, uuid ], get_attr: [ net_5, uuid ] ]
+      user_script:
+        str_replace:
+          template: |
+            #!/usr/bin/env bash
+            cat > /testfile <<EOF
+            sapi_endpoint: %sapi_endpoint%
+            user_uuid: %user_uuid%
+            instance_alias: %instance_alias%
+            package: %package%
+            image: %image%
+            networks: %networks%
+            EOF
+          params:
+            "%sapi_endpoint%": { get_param: sapi_endpoint }
+            "%user_uuid%": { get_param: user_uuid }
+            "%instance_alias%": "sm_2"
+            "%package%": { get_param: package }
+            "%image%": { get_param: smart_machine_image }
+            "%networks%":
+              Fn::Join:
+                - ","
+                - [get_param: external_network_uuid, get_attr: [ net_1, uuid ], get_attr: [ net_2, uuid ], get_attr: [ net_3, uuid ], get_attr: [ net_4, uuid ], get_attr: [ net_5, uuid ] ]
+  kvm_2:
+    type: SDC::Compute::KVM
+    properties:
+      sapi_endpoint: { get_param: sapi_endpoint }
+      user_uuid: { get_param: user_uuid }
+      instance_alias: "kvm_2"
+      package: { get_param: package }
+      image: { get_param: kvm_image }
+      networks:
+        Fn::Join:
+          - ","
+          - [get_param: external_network_uuid, get_attr: [ net_1, uuid ], get_attr: [ net_2, uuid ], get_attr: [ net_3, uuid ], get_attr: [ net_4, uuid ], get_attr: [ net_5, uuid ] ]
+      user_script:
+        str_replace:
+          template: |
+            #!/usr/bin/env bash
+            cat > /testfile <<EOF
+            sapi_endpoint: %sapi_endpoint%
+            user_uuid: %user_uuid%
+            instance_alias: %instance_alias%
+            package: %package%
+            image: %image%
+            networks: %networks%
+            EOF
+          params:
+            "%sapi_endpoint%": { get_param: sapi_endpoint }
+            "%user_uuid%": { get_param: user_uuid }
+            "%instance_alias%": "kvm_2"
+            "%package%": { get_param: package }
+            "%image%": { get_param: kvm_image }
+            "%networks%":
+              Fn::Join:
+                - ","
+                - [get_param: external_network_uuid, get_attr: [ net_1, uuid ], get_attr: [ net_2, uuid ], get_attr: [ net_3, uuid ], get_attr: [ net_4, uuid ], get_attr: [ net_5, uuid ] ]
+  net_1:
+    type: SDC::Network::SmartNetwork
+    properties:
+      sapi_endpoint: { get_param: sapi_endpoint }
+      owner_uuids: { get_param: user_uuid }
+      name: { get_param: net_prefix }
+      description: { get_param: net_description }
+  net_2:
+    type: SDC::Network::SmartNetwork
+    properties:
+      sapi_endpoint: { get_param: sapi_endpoint }
+      owner_uuids: { get_param: user_uuid }
+      name: { get_param: net_prefix }
+      description: { get_param: net_description }
+  net_3:
+    type: SDC::Network::SmartNetwork
+    properties:
+      sapi_endpoint: { get_param: sapi_endpoint }
+      owner_uuids: { get_param: user_uuid }
+      name: { get_param: net_prefix }
+      description: { get_param: net_description }
+  net_4:
+    type: SDC::Network::SmartNetwork
+    properties:
+      sapi_endpoint: { get_param: sapi_endpoint }
+      owner_uuids: { get_param: user_uuid }
+      name: { get_param: net_prefix }
+      description: { get_param: net_description }
+  net_5:
+    type: SDC::Network::SmartNetwork
+    properties:
+      sapi_endpoint: { get_param: sapi_endpoint }
+      owner_uuids: { get_param: user_uuid }
+      name: { get_param: net_prefix }
+      description: { get_param: net_description }
+
+
+outputs:
+  SmartMachine_1_IP:
+    description: The external IP address of the smart machine
+    value: { get_attr: [ sm_1, network_ip ] }
+  SmartMachine_2_IP:
+    description: The external IP address of the smart machine
+    value: { get_attr: [ sm_2, network_ip ] }
+  KVM_1_IP:
+    description: The external IP address of the kvm machine
+    value: { get_attr: [ kvm_1, network_ip ] }
+  KVM_2_IP:
+    description: The external IP address of the kvm machine
+    value: { get_attr: [ kvm_2, network_ip ] }
