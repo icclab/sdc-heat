@@ -24,7 +24,7 @@ parameters:
 
   user_uuid:
     type: string
-    default: ca50e0a6-0f87-c911-fb01-e139514f760f
+    default: 72f70341-b227-4051-befd-b0d5e1588a6d
     description: UUID of the owner of the machines
 
   package:
@@ -57,6 +57,11 @@ parameters:
     default: foo_net_desc
     description: Description for the new network
 
+  user_script:
+    type: string
+    default: 'touch /test'
+    description: Shell script to run at boot
+
 resources:
   sm_1:
     type: SDC::Compute::SmartMachine
@@ -70,28 +75,7 @@ resources:
         Fn::Join:
           - ","
           - [get_param: external_network_uuid, get_attr: [ net_1, uuid ], get_attr: [ net_2, uuid ], get_attr: [ net_3, uuid ], get_attr: [ net_4, uuid ], get_attr: [ net_5, uuid ] ]
-      user_script:
-        str_replace:
-          template: |
-            #!/usr/bin/env bash
-            cat > /testfile <<EOF
-            sapi_endpoint: %sapi_endpoint%
-            user_uuid: %user_uuid%
-            instance_alias: %instance_alias%
-            package: %package%
-            image: %image%
-            networks: %networks%
-            EOF
-          params:
-            "%sapi_endpoint%": { get_param: sapi_endpoint }
-            "%user_uuid%": { get_param: user_uuid }
-            "%instance_alias%": "sm_1"
-            "%package%": { get_param: package }
-            "%image%": { get_param: smart_machine_image }
-            "%networks%":
-              Fn::Join:
-                - ","
-                - [get_param: external_network_uuid, get_attr: [ net_1, uuid ], get_attr: [ net_2, uuid ], get_attr: [ net_3, uuid ], get_attr: [ net_4, uuid ], get_attr: [ net_5, uuid ] ]
+      user_script: { get_param: user_script }
   kvm_1:
     type: SDC::Compute::KVM
     properties:
@@ -104,28 +88,7 @@ resources:
         Fn::Join:
           - ","
           - [get_param: external_network_uuid, get_attr: [ net_1, uuid ], get_attr: [ net_2, uuid ], get_attr: [ net_3, uuid ], get_attr: [ net_4, uuid ], get_attr: [ net_5, uuid ] ]
-      user_script:
-        str_replace:
-          template: |
-            #!/usr/bin/env bash
-            cat > /testfile <<EOF
-            sapi_endpoint: %sapi_endpoint%
-            user_uuid: %user_uuid%
-            instance_alias: %instance_alias%
-            package: %package%
-            image: %image%
-            networks: %networks%
-            EOF
-          params:
-            "%sapi_endpoint%": { get_param: sapi_endpoint }
-            "%user_uuid%": { get_param: user_uuid }
-            "%instance_alias%": "kvm_1"
-            "%package%": { get_param: package }
-            "%image%": { get_param: kvm_image }
-            "%networks%":
-              Fn::Join:
-                - ","
-                - [get_param: external_network_uuid, get_attr: [ net_1, uuid ], get_attr: [ net_2, uuid ], get_attr: [ net_3, uuid ], get_attr: [ net_4, uuid ], get_attr: [ net_5, uuid ] ]
+      user_script: { get_param: user_script }
 
   sm_2:
     type: SDC::Compute::SmartMachine

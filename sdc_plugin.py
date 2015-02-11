@@ -259,8 +259,6 @@ class SDCSmartNetwork(SDCNetwork):
         return network.uuid
 
 
-
-
 class SDCMachine(resource.Resource):
     PROPERTIES = (SAPI_ENDPOINT, USER_UUID, INSTANCE_ALIAS, PACKAGE, IMAGE, NETWORKS, USER_SCRIPT) = \
         ('sapi_endpoint', 'user_uuid', 'instance_alias', 'package', 'image', 'networks', 'user_script')
@@ -288,8 +286,7 @@ class SDCMachine(resource.Resource):
         PACKAGE: properties.Schema(
             properties.Schema.STRING,
             _('Package UUID to use'),
-            required=True,
-            default=256
+            required=True
         ),
 
         IMAGE: properties.Schema(
@@ -307,7 +304,8 @@ class SDCMachine(resource.Resource):
             properties.Schema.STRING,
             _('The user script.'),
             required=False,
-            default=''
+            default='',
+            update_allowed=True
         )
 
     }
@@ -332,13 +330,6 @@ class SDCMachine(resource.Resource):
     attributes_schema = {
         'network_ip': _('ip address')
     }
-
-    def _get_dc(self):
-        dc = DataCenter(sapi=self.properties.get(self.SAPI_ENDPOINT))
-        # TODO: add grace period, i.e. retries=3
-        # if dc.healthcheck_vmapi() != True:
-        #     raise Exception('VMAPI not healthy')
-        return dc
 
     # def handle_create(self): <- is handled in SDCSmartMachine and SDCKVM
 
@@ -408,7 +399,6 @@ class SDCMachine(resource.Resource):
         instance.delete()
 
     def check_delete_complete(self, _compute_id):
-
         dc = self._get_dc()
 
         logger.debug(_("Check delete server %s") % self.resource_id)
@@ -418,6 +408,34 @@ class SDCMachine(resource.Resource):
         machine = dc.get_machine(self.resource_id)
         return machine.is_destroyed()
 
+    def handle_update(self, json_snippet=None, tmpl_diff=None, prop_diff=None):
+
+        dc = self._get_dc()
+
+        logger.debug(_("Update server %s") % self.resource_id)
+        logger.debug("json_snippet: %s" % json_snippet)
+        logger.debug("tmpl_diff: %s" % tmpl_diff)
+        logger.debug("prop_diff: %s" % prop_diff)
+
+        if self.USER_SCRIPT in prop_diff:
+            new_user_script = prop_diff[self.USER_SCRIPT]
+            machine = dc.get_machine(self.resource_id)
+            logger.debug('Update server %s with new user-script: %s' % (self.resource_id, new_user_script))
+            customer_metadata = machine.customer_metadata
+            customer_metadata.update({'user-script': new_user_script, 'rerun-user-script': 'True'})
+            machine.update_metadata('customer_metadata', customer_metadata)
+            return customer_metadata
+        return None
+
+    def check_update_complete(self, token):
+        dc = self._get_dc()
+        logger.debug(_("Check if update is complete"))
+        machine = dc.get_machine(self.resource_id)
+        if token.get('user-script') == machine.customer_metadata.get('user-script'):
+            logger.debug(_("user-script updated"))
+            return True
+        logger.debug(_("user-script not yet updated"))
+        return False
 
 class SDCSmartMachine(SDCMachine):
 
@@ -448,7 +466,8 @@ class SDCSmartMachine(SDCMachine):
                                           package=package,
                                           image=image,
                                           alias=alias,
-                                          user_script=user_script)
+                                          user_script=user_script,
+                                          inject_rerunable_userscript_functionality=True)
         logger.debug(_("VM Created %s") % machine)
 
         self.resource_id_set(machine.uuid)
@@ -481,7 +500,7 @@ class SDCKVM(SDCMachine):
                        "user_script.__len__(): %i") % (user_uuid, networks.__str__(), package, image, alias,
                                                        user_script.__len__()))
         machine = dc.create_kvm_machine(owner=user_uuid, networks=networks, package=package, image=image, alias=alias,
-                                        user_script=user_script)
+                                        user_script=user_script, inject_rerunable_userscript_functionality=True)
         logger.debug(_("VM Created %s") % machine)
 
         self.resource_id_set(machine.uuid)
