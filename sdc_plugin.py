@@ -385,7 +385,6 @@ class SDCMachine(resource.Resource):
 
     def handle_delete(self):
         logger.debug(_("Delete server %s") % self.resource_id)
-
         dc = self._get_dc()
 
         # enables to delete a stack if it was not created successfully, e.a. no resource_id
@@ -436,6 +435,7 @@ class SDCMachine(resource.Resource):
             return True
         logger.debug(_("user-script not yet updated"))
         return False
+
 
 class SDCSmartMachine(SDCMachine):
 
