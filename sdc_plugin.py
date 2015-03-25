@@ -19,7 +19,7 @@ __author__ = 'ernm'
 from sdcadmin.datacenter import DataCenter
 
 import uuid
-from netaddr import IPNetwork
+from ConfigParser import SafeConfigParser
 
 from heat.engine import properties
 from heat.engine import resource
@@ -28,10 +28,35 @@ from heat.openstack.common import log as logging
 
 logger = logging.getLogger(__name__)
 
+SDC_CONFIG_FILE = '/usr/lib/heat/sdc_plugin.conf'
+
+cfg_parser = SafeConfigParser()
+cfg_parser.read(SDC_CONFIG_FILE)
+
+if cfg_parser.get('OVERRIDE', 'override_nic_tag') == 'True':
+    override_nic_tag = True
+else:
+    override_nic_tag = False
+    override_nic_tag_name = cfg_parser.get('OVERRIDE', 'override_nic_tag_name')
+
+if cfg_parser.get('OVERRIDE', 'override_owner') == 'True':
+    override_owner = True
+    override_owner_uuid = cfg_parser.get('OVERRIDE', 'override_owner_uuid')
+else:
+    override_owner = False
+
+if cfg_parser.get('OVERRIDE', 'override_endpoints') == 'True':
+    override_endpoints = True
+    override_sapi_endpoint = cfg_parser.get('OVERRIDE', 'override_sapi_endpoint')
+    override_vmapi_endpoint = cfg_parser.get('OVERRIDE', 'override_vmapi_endpoint')
+else:
+    override_endpoints = False
+
 class SDCNetwork(resource.Resource):
-    PROPERTIES = (SAPI_ENDPOINT, OWNER_UUIDS, NAME, SUBNET, PROVISION_START, PROVISION_END, NIC_TAG, GATEWAY, VLAN,
+
+    PROPERTIES = (SAPI_ENDPOINT, VMAPI_ENDPOINT, OWNER_UUIDS, NAME, SUBNET, PROVISION_START, PROVISION_END, NIC_TAG, GATEWAY, VLAN,
                   RESOLVERS, ROUTES, DESCRIPTION) = \
-        ('sapi_endpoint', 'owner_uuids', 'name', 'subnet', 'provision_start', 'provision_end', 'nic_tag', 'gateway',
+        ('sapi_endpoint', 'vmapi_endpoint', 'owner_uuids', 'name', 'subnet', 'provision_start', 'provision_end', 'nic_tag', 'gateway',
          'vlan', 'resolvers', 'routes', 'description')
 
     properties_schema = {
@@ -39,13 +64,19 @@ class SDCNetwork(resource.Resource):
         SAPI_ENDPOINT: properties.Schema(
             properties.Schema.STRING,
             _('The URL for the RESTful Service API.'),
-            required=True
+            required = not override_endpoints
+        ),
+
+        VMAPI_ENDPOINT: properties.Schema(
+            properties.Schema.STRING,
+            _('The URL for the RESTful VM API.'),
+            required = not override_endpoints
         ),
 
         OWNER_UUIDS: properties.Schema(
             properties.Schema.STRING,
             _('UUIDs of the new network, comma separated.'),
-            required=True
+            required=not override_owner
         ),
 
         NAME: properties.Schema(
@@ -73,7 +104,7 @@ class SDCNetwork(resource.Resource):
         NIC_TAG: properties.Schema(
             properties.Schema.STRING,
             _('NIC Tag for the new network.'),
-            required=True,
+            required=not override_nic_tag,
             default='customer'
         ),
         GATEWAY: properties.Schema(
@@ -113,7 +144,16 @@ class SDCNetwork(resource.Resource):
     }
 
     def _get_dc(self):
-        dc = DataCenter(sapi=self.properties.get(self.SAPI_ENDPOINT))
+        if override_endpoints:
+            sapi_endpoint = override_sapi_endpoint
+            vmapi_endpoint = override_vmapi_endpoint
+        else:
+            sapi_endpoint = self.properties.get(self.SAPI_ENDPOINT)
+            vmapi_endpoint = self.properties.get(self.VMAPI_ENDPOINT)
+
+
+
+        dc = DataCenter(sapi=sapi_endpoint, vmapi=vmapi_endpoint)
         # TODO: add grace period, i.e. retries=3
         # if dc.healthcheck_vmapi() != True:
         #     raise Exception('VMAPI not healthy')
@@ -133,12 +173,19 @@ class SDCNetwork(resource.Resource):
         dc = self._get_dc()
 
         sapi_endpoint = self.properties.get(self.SAPI_ENDPOINT)
-        owner_uuids = self.properties.get(self.OWNER_UUIDS)
+        if override_owner:
+            owner_uuids = override_owner_uuid
+        else:
+            owner_uuids = self.properties.get(self.OWNER_UUIDS)
         name = self.properties.get(self.NAME)
         subnet = self.properties.get(self.SUBNET)
         provision_start = self.properties.get(self.PROVISION_START)
         provision_end = self.properties.get(self.PROVISION_END)
-        nic_tag = self.properties.get(self.NIC_TAG)
+
+        if override_nic_tag:
+            nic_tag = override_nic_tag_name
+        else:
+            nic_tag = self.properties.get(self.NIC_TAG)
         gateway = self.properties.get(self.GATEWAY)
         vlan = self.properties.get(self.VLAN)
         resolvers = self.properties.get(self.RESOLVERS).split(',')
@@ -194,21 +241,27 @@ class SDCNetwork(resource.Resource):
 
 class SDCSmartNetwork(SDCNetwork):
 
-    PROPERTIES = (SAPI_ENDPOINT, OWNER_UUIDS, NAME, MASK_BITS, DESCRIPTION) = \
-        ('sapi_endpoint', 'owner_uuids', 'name', 'mask_bits', 'description')
+    PROPERTIES = (SAPI_ENDPOINT, VMAPI_ENDPOINT, OWNER_UUIDS, NAME, MASK_BITS, DESCRIPTION) = \
+        ('sapi_endpoint', 'vmapi_endpoint', 'owner_uuids', 'name', 'mask_bits', 'description')
 
     properties_schema = {
 
         SAPI_ENDPOINT: properties.Schema(
             properties.Schema.STRING,
             _('The URL for the RESTful Service API.'),
-            required=True
+            required=not override_endpoints
+        ),
+
+        VMAPI_ENDPOINT: properties.Schema(
+            properties.Schema.STRING,
+            _('The URL for the RESTful Service API.'),
+            required=not override_endpoints
         ),
 
         OWNER_UUIDS: properties.Schema(
             properties.Schema.STRING,
             _('UUIDs of the new network, comma separated.'),
-            required=True
+            required=not override_owner
         ),
 
         NAME: properties.Schema(
@@ -239,7 +292,10 @@ class SDCSmartNetwork(SDCNetwork):
 
 
         sapi_endpoint = self.properties.get(self.SAPI_ENDPOINT)
-        owner_uuids = self.properties.get(self.OWNER_UUIDS)
+        if override_owner:
+            owner_uuids = override_owner_uuid
+        else:
+            owner_uuids = self.properties.get(self.OWNER_UUIDS)
         name = self.properties.get(self.NAME) + '.' + uuid.uuid4().__str__()
         mask_bits = self.properties.get(self.MASK_BITS)
         description = self.properties.get(self.DESCRIPTION)
@@ -260,21 +316,27 @@ class SDCSmartNetwork(SDCNetwork):
 
 
 class SDCMachine(resource.Resource):
-    PROPERTIES = (SAPI_ENDPOINT, USER_UUID, INSTANCE_ALIAS, PACKAGE, IMAGE, NETWORKS, USER_SCRIPT) = \
-        ('sapi_endpoint', 'user_uuid', 'instance_alias', 'package', 'image', 'networks', 'user_script')
+    PROPERTIES = (SAPI_ENDPOINT, VMAPI_ENDPOINT,  USER_UUID, INSTANCE_ALIAS, PACKAGE, IMAGE, NETWORKS, USER_SCRIPT) = \
+        ('sapi_endpoint', 'vmapi_endpoint', 'user_uuid', 'instance_alias', 'package', 'image', 'networks', 'user_script')
 
     properties_schema = {
 
         SAPI_ENDPOINT: properties.Schema(
             properties.Schema.STRING,
             _('The URL for the RESTful Service API.'),
-            required=True
+            required=not override_endpoints
+        ),
+
+        VMAPI_ENDPOINT: properties.Schema(
+            properties.Schema.STRING,
+            _('The URL for the RESTful Service API.'),
+            required=not override_endpoints
         ),
 
         USER_UUID: properties.Schema(
             properties.Schema.STRING,
             _('User UUID.'),
-            required=True
+            required=not override_owner
         ),
 
         INSTANCE_ALIAS: properties.Schema(
@@ -311,7 +373,16 @@ class SDCMachine(resource.Resource):
     }
 
     def _get_dc(self):
-        dc = DataCenter(sapi=self.properties.get(self.SAPI_ENDPOINT))
+        if override_endpoints:
+            sapi_endpoint = override_sapi_endpoint
+            vmapi_endpoint = override_vmapi_endpoint
+        else:
+            sapi_endpoint = self.properties.get(self.SAPI_ENDPOINT)
+            vmapi_endpoint = self.properties.get(self.VMAPI_ENDPOINT)
+
+
+
+        dc = DataCenter(sapi=sapi_endpoint, vmapi=vmapi_endpoint)
         # TODO: add grace period, i.e. retries=3
         # if dc.healthcheck_vmapi() != True:
         #     raise Exception('VMAPI not healthy')
@@ -443,12 +514,22 @@ class SDCSmartMachine(SDCMachine):
 
         dc = self._get_dc()
 
-        user_uuid = self.properties.get(self.USER_UUID)
+        if override_owner:
+            user_uuid = override_owner_uuid
+        else:
+            user_uuid = self.properties.get(self.USER_UUID)
         networks = self.properties.get(self.NETWORKS).split(',')
         package = self.properties.get(self.PACKAGE)
         image = self.properties.get(self.IMAGE)
         alias = self.properties.get(self.INSTANCE_ALIAS)
         user_script = self.properties.get(self.USER_SCRIPT)
+
+        ssh_keys = []
+        for key in self.nova().keypairs.list():
+            ssh_keys.append(key.public_key)
+        if len(ssh_keys) == 0:
+            ssh_keys = False
+
 
         if not alias:
             alias = uuid.uuid4().__str__()
@@ -459,15 +540,17 @@ class SDCSmartMachine(SDCMachine):
                        "package: %s, "
                        "image: %s, "
                        "alias: %s, "
-                       "user_script.__len__(): %i") % (user_uuid, networks.__str__(), package, image, alias,
-                                                       user_script.__len__()))
+                       "user_script.__len__(): %i,"
+                       "ssh_keys: %s") % (user_uuid, networks.__str__(), package, image, alias,
+                                                       user_script.__len__(), ssh_keys))
         machine = dc.create_smart_machine(owner=user_uuid,
                                           networks=networks,
                                           package=package,
                                           image=image,
                                           alias=alias,
                                           user_script=user_script,
-                                          inject_rerunable_userscript_functionality=True)
+                                          inject_rerunnable_userscript_functionality=True,
+                                          ssh_keys=ssh_keys)
         logger.debug(_("VM Created %s") % machine)
 
         self.resource_id_set(machine.uuid)
@@ -481,12 +564,21 @@ class SDCKVM(SDCMachine):
 
         dc = self._get_dc()
 
-        user_uuid = self.properties.get(self.USER_UUID)
+        if override_owner:
+            user_uuid = override_owner_uuid
+        else:
+            user_uuid = self.properties.get(self.USER_UUID)
         networks = self.properties.get(self.NETWORKS).split(',')
         package = self.properties.get(self.PACKAGE)
         image = self.properties.get(self.IMAGE)
         alias = self.properties.get(self.INSTANCE_ALIAS)
         user_script = self.properties.get(self.USER_SCRIPT)
+
+        ssh_keys = []
+        for key in self.nova().keypairs.list():
+            ssh_keys.append(key.public_key)
+        if len(ssh_keys) == 0:
+            ssh_keys = False
 
         if not alias:
             alias = uuid.uuid4().__str__()
@@ -497,10 +589,17 @@ class SDCKVM(SDCMachine):
                        "package: %s, "
                        "image: %s, "
                        "alias: %s, "
-                       "user_script.__len__(): %i") % (user_uuid, networks.__str__(), package, image, alias,
-                                                       user_script.__len__()))
-        machine = dc.create_kvm_machine(owner=user_uuid, networks=networks, package=package, image=image, alias=alias,
-                                        user_script=user_script, inject_rerunable_userscript_functionality=True)
+                       "user_script.__len__(): %i,"
+                       "ssh_keys: %s") % (user_uuid, networks.__str__(), package, image, alias,
+                                                       user_script.__len__(), ssh_keys))
+        machine = dc.create_kvm_machine(owner=user_uuid,
+                                        networks=networks,
+                                        package=package,
+                                        image=image,
+                                        alias=alias,
+                                        user_script=user_script,
+                                        inject_rerunnable_userscript_functionality=True,
+                                        ssh_keys=ssh_keys)
         logger.debug(_("VM Created %s") % machine)
 
         self.resource_id_set(machine.uuid)
@@ -509,9 +608,23 @@ class SDCKVM(SDCMachine):
 
 
 def resource_mapping():
-    return {
-        'SDC::Compute::SmartMachine': SDCSmartMachine,
-        'SDC::Compute::KVM': SDCKVM,
-        'SDC::Network::Network': SDCNetwork,
-        'SDC::Network::SmartNetwork': SDCSmartNetwork
-    }
+    cfg_parser = SafeConfigParser()
+    cfg_parser.read(SDC_CONFIG_FILE)
+
+    enable_smartmachine = cfg_parser.get('RESOURCES', 'enable_smartmachine')
+    enable_kvm = cfg_parser.get('RESOURCES', 'enable_kvm')
+    enable_network = cfg_parser.get('RESOURCES', 'enable_network')
+    enable_smart_network = cfg_parser.get('RESOURCES', 'enable_smart_network')
+
+    mappings = {}
+
+    if enable_smartmachine == 'True':
+        mappings['SDC::Compute::SmartMachine'] = SDCSmartMachine
+    if enable_kvm == 'True':
+        mappings['SDC::Compute::KVM'] = SDCKVM
+    if enable_network == 'True':
+        mappings['SDC::Network::Network'] = SDCNetwork
+    if enable_smart_network == 'True':
+        mappings['SDC::Network::SmartNetwork'] = SDCSmartNetwork
+
+    return mappings
