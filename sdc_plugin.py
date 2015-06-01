@@ -35,9 +35,9 @@ cfg_parser.read(SDC_CONFIG_FILE)
 
 if cfg_parser.get('OVERRIDE', 'override_nic_tag') == 'True':
     override_nic_tag = True
+    override_nic_tag_name = cfg_parser.get('OVERRIDE', 'override_nic_tag_name')
 else:
     override_nic_tag = False
-    override_nic_tag_name = cfg_parser.get('OVERRIDE', 'override_nic_tag_name')
 
 if cfg_parser.get('OVERRIDE', 'override_owner') == 'True':
     override_owner = True
@@ -525,12 +525,13 @@ class SDCSmartMachine(SDCMachine):
         user_script = self.properties.get(self.USER_SCRIPT)
 
         ssh_keys = []
-        for key in self.nova().keypairs.list():
-            ssh_keys.append(key.public_key)
+        try:
+            for key in self.nova().keypairs.list():
+                ssh_keys.append(key.public_key)
+        except:
+            pass
         if len(ssh_keys) == 0:
-            ssh_keys = False
-
-
+                ssh_keys = False
         if not alias:
             alias = uuid.uuid4().__str__()
 

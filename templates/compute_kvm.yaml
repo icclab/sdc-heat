@@ -17,15 +17,6 @@ heat_template_version: 2013-05-23
 description: Heat template to deploy a SmartMachine and a KVM Machine in SDC
 
 parameters:
-  sapi_endpoint:
-    type: string
-    default: 10.0.0.26
-    description : The admin-IP address of the sapi instance
-
-  user_uuid:
-    type: string
-    default: ca50e0a6-0f87-c911-fb01-e139514f760f
-    description: UUID of the owner of the machines
 
   kvm_alias:
     type: string
@@ -34,25 +25,23 @@ parameters:
 
   package:
     type: string
-    default: a8c2033d-e8eb-c17e-83ce-b10e36f1339b
+    default: 8590f908-4698-6c63-a863-991a9e998e5f
     description: The package uuid to use
 
   kvm_image:
     type: string
-    default: b1df4936-7a5c-11e4-98ed-dfe1fa3a813a
+    default: c864f104-624c-43d2-835e-b49a39709b6b
     description: The image uuid to use for the kvm machine
 
   networks:
     type: string
-    default: f27c02f1-5b4c-4ef1-b463-59c7e60f02e5
+    default: c65d319c-5eb5-4b42-8edc-104f73d80002
     description: The network uuid to use
 
 resources:
   MyFirstKVMMachine:
     type: SDC::Compute::KVM
     properties:
-      sapi_endpoint: { get_param: sapi_endpoint }
-      user_uuid: { get_param: user_uuid }
       instance_alias: { get_param: kvm_alias }
       package: { get_param: package }
       image: { get_param: kvm_image }
@@ -70,8 +59,6 @@ resources:
             networks: %networks%
             EOF
           params:
-            "%sapi_endpoint%": { get_param: sapi_endpoint }
-            "%user_uuid%": { get_param: user_uuid }
             "%instance_alias%": { get_param: kvm_alias }
             "%package%": { get_param: package }
             "%image%": { get_param: kvm_image }
