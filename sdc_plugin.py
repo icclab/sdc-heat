@@ -28,7 +28,8 @@ from heat.openstack.common import log as logging
 
 logger = logging.getLogger(__name__)
 
-SDC_CONFIG_FILE = '/usr/lib/heat/sdc_plugin.conf'
+#TODO: improve cfg-loading
+SDC_CONFIG_FILE = '/opt/heat/plugins/sdc_plugin.conf'
 
 cfg_parser = SafeConfigParser()
 cfg_parser.read(SDC_CONFIG_FILE)
@@ -44,6 +45,12 @@ if cfg_parser.get('OVERRIDE', 'override_owner') == 'True':
     override_owner_uuid = cfg_parser.get('OVERRIDE', 'override_owner_uuid')
 else:
     override_owner = False
+
+if cfg_parser.get('OVERRIDE', 'real_owner') == 'True':
+    real_owner = True
+else:
+    real_owner = False
+
 
 if cfg_parser.get('OVERRIDE', 'override_endpoints') == 'True':
     override_endpoints = True
@@ -515,7 +522,10 @@ class SDCSmartMachine(SDCMachine):
         dc = self._get_dc()
 
         if override_owner:
-            user_uuid = override_owner_uuid
+            if real_owner:
+                user_uuid = self.keystone()._client.user_id
+            else:
+                user_uuid = override_owner_uuid
         else:
             user_uuid = self.properties.get(self.USER_UUID)
         networks = self.properties.get(self.NETWORKS).split(',')
@@ -524,14 +534,16 @@ class SDCSmartMachine(SDCMachine):
         alias = self.properties.get(self.INSTANCE_ALIAS)
         user_script = self.properties.get(self.USER_SCRIPT)
 
-        ssh_keys = []
-        try:
-            for key in self.nova().keypairs.list():
-                ssh_keys.append(key.public_key)
-        except:
-            pass
-        if len(ssh_keys) == 0:
-                ssh_keys = False
+        ssh_keys = False
+        if not real_owner:
+            ssh_keys = []
+            try:
+                for key in self.nova().keypairs.list():
+                    ssh_keys.append(key.public_key)
+            except:
+                pass
+            if len(ssh_keys) == 0:
+                    ssh_keys = False
         if not alias:
             alias = uuid.uuid4().__str__()
 
