@@ -67,25 +67,6 @@ class SDCNetwork(resource.Resource):
          'vlan', 'resolvers', 'routes', 'description')
 
     properties_schema = {
-
-        SAPI_ENDPOINT: properties.Schema(
-            properties.Schema.STRING,
-            _('The URL for the RESTful Service API.'),
-            required = not override_endpoints
-        ),
-
-        VMAPI_ENDPOINT: properties.Schema(
-            properties.Schema.STRING,
-            _('The URL for the RESTful VM API.'),
-            required = not override_endpoints
-        ),
-
-        OWNER_UUIDS: properties.Schema(
-            properties.Schema.STRING,
-            _('UUIDs of the new network, comma separated.'),
-            required=not override_owner
-        ),
-
         NAME: properties.Schema(
             properties.Schema.STRING,
             _('The network name.'),
@@ -145,6 +126,27 @@ class SDCNetwork(resource.Resource):
             default=''
         )
     }
+    if not override_endpoints:
+        properties_schema.update({
+            SAPI_ENDPOINT: properties.Schema(
+            properties.Schema.STRING,
+            _('The URL for the RESTful Service API.'),
+            required = True
+            ),
+            VMAPI_ENDPOINT: properties.Schema(
+                properties.Schema.STRING,
+                _('The URL for the RESTful VM API.'),
+                required = True
+            )
+        })
+    if not override_owner:
+        properties_schema.update({
+            OWNER_UUIDS: properties.Schema(
+                properties.Schema.STRING,
+                _('UUIDs of the new network, comma separated.'),
+                required=not override_owner
+            )
+        })
 
     attributes_schema = {
         'uuid': _('uuid')
@@ -252,25 +254,6 @@ class SDCSmartNetwork(SDCNetwork):
         ('sapi_endpoint', 'vmapi_endpoint', 'owner_uuids', 'name', 'mask_bits', 'description')
 
     properties_schema = {
-
-        SAPI_ENDPOINT: properties.Schema(
-            properties.Schema.STRING,
-            _('The URL for the RESTful Service API.'),
-            required=not override_endpoints
-        ),
-
-        VMAPI_ENDPOINT: properties.Schema(
-            properties.Schema.STRING,
-            _('The URL for the RESTful Service API.'),
-            required=not override_endpoints
-        ),
-
-        OWNER_UUIDS: properties.Schema(
-            properties.Schema.STRING,
-            _('UUIDs of the new network, comma separated.'),
-            required=not override_owner
-        ),
-
         NAME: properties.Schema(
             properties.Schema.STRING,
             _('The network name.'),
@@ -291,6 +274,27 @@ class SDCSmartNetwork(SDCNetwork):
             default=''
         )
     }
+    if not override_endpoints:
+        properties_schema.update({
+            SAPI_ENDPOINT: properties.Schema(
+            properties.Schema.STRING,
+            _('The URL for the RESTful Service API.'),
+            required = True
+            ),
+            VMAPI_ENDPOINT: properties.Schema(
+                properties.Schema.STRING,
+                _('The URL for the RESTful VM API.'),
+                required = True
+            )
+        })
+    if not override_owner:
+        properties_schema.update({
+            OWNER_UUIDS: properties.Schema(
+                properties.Schema.STRING,
+                _('UUIDs of the new network, comma separated.'),
+                required=not override_owner
+            )
+        })
 
     def handle_create(self):
 
@@ -327,25 +331,6 @@ class SDCMachine(resource.Resource):
         ('sapi_endpoint', 'vmapi_endpoint', 'user_uuid', 'instance_alias', 'package', 'image', 'networks', 'user_script')
 
     properties_schema = {
-
-        SAPI_ENDPOINT: properties.Schema(
-            properties.Schema.STRING,
-            _('The URL for the RESTful Service API.'),
-            required=not override_endpoints
-        ),
-
-        VMAPI_ENDPOINT: properties.Schema(
-            properties.Schema.STRING,
-            _('The URL for the RESTful Service API.'),
-            required=not override_endpoints
-        ),
-
-        USER_UUID: properties.Schema(
-            properties.Schema.STRING,
-            _('User UUID.'),
-            required=not override_owner
-        ),
-
         INSTANCE_ALIAS: properties.Schema(
             properties.Schema.STRING,
             _('The instance name.'),
@@ -378,6 +363,28 @@ class SDCMachine(resource.Resource):
         )
 
     }
+
+    if not override_endpoints:
+        properties_schema.update({
+            SAPI_ENDPOINT: properties.Schema(
+            properties.Schema.STRING,
+            _('The URL for the RESTful Service API.'),
+            required = True
+            ),
+            VMAPI_ENDPOINT: properties.Schema(
+                properties.Schema.STRING,
+                _('The URL for the RESTful VM API.'),
+                required = True
+            )
+        })
+    if not override_owner:
+        properties_schema.update({
+            USER_UUID: properties.Schema(
+                properties.Schema.STRING,
+                _('User UUID.'),
+                required=True
+            )
+        })
 
     def _get_dc(self):
         if override_endpoints:
