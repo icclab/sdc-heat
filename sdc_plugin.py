@@ -29,7 +29,8 @@ from heat.openstack.common import log as logging
 logger = logging.getLogger(__name__)
 
 #TODO: improve cfg-loading
-SDC_CONFIG_FILE = '/opt/heat/plugins/sdc_plugin.conf'
+#SDC_CONFIG_FILE = '/opt/heat/plugins/sdc_plugin.conf'
+SDC_CONFIG_FILE = '/usr/lib/heat/sdc_plugin.conf'
 
 cfg_parser = SafeConfigParser()
 cfg_parser.read(SDC_CONFIG_FILE)
@@ -410,10 +411,22 @@ class SDCMachine(resource.Resource):
         if machine:
             if name == 'network_ip':
                 return machine.nics[0].get('ip')
+            if name == 'external_ip':
+                try:
+                    return ','.join([nic.get('ip') for nic in machine.nics if nic.get('nic_tag') == 'external'])
+                except:
+                    return ''
+            if name == 'internal_ip':
+                 try:
+                    return ','.join([nic.get('ip') for nic in machine.nics if nic.get('nic_tag') == 'customer'])
+                 except:
+                    return ''
             return getattr(machine, name)
 
     attributes_schema = {
-        'network_ip': _('ip address')
+        'network_ip': _('ip address'),
+        'external_ip': _('external ip address'),
+        'internal_ip': _('internal ip address')
     }
 
     # def handle_create(self): <- is handled in SDCSmartMachine and SDCKVM
@@ -551,6 +564,10 @@ class SDCSmartMachine(SDCMachine):
                 pass
             if len(ssh_keys) == 0:
                     ssh_keys = False
+
+        if alias:
+            # add stack id to avoid alias collisions
+            alias = alias + '-' + self.stack.id
         if not alias:
             alias = uuid.uuid4().__str__()
 
@@ -600,6 +617,9 @@ class SDCKVM(SDCMachine):
         if len(ssh_keys) == 0:
             ssh_keys = False
 
+        if alias:
+            # add stack id to avoid alias collisions
+            alias = alias + '-' + self.stack.id
         if not alias:
             alias = uuid.uuid4().__str__()
 
