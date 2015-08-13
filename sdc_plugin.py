@@ -29,8 +29,8 @@ from heat.openstack.common import log as logging
 logger = logging.getLogger(__name__)
 
 #TODO: improve cfg-loading
-#SDC_CONFIG_FILE = '/opt/heat/plugins/sdc_plugin.conf'
-SDC_CONFIG_FILE = '/usr/lib/heat/sdc_plugin.conf'
+SDC_CONFIG_FILE = '/opt/heat/plugins/sdc_plugin.conf'
+#SDC_CONFIG_FILE = '/usr/lib/heat/sdc_plugin.conf'
 
 cfg_parser = SafeConfigParser()
 cfg_parser.read(SDC_CONFIG_FILE)
@@ -305,7 +305,10 @@ class SDCSmartNetwork(SDCNetwork):
 
         sapi_endpoint = self.properties.get(self.SAPI_ENDPOINT)
         if override_owner:
-            owner_uuids = override_owner_uuid
+            if real_owner:
+                owner_uuids = self.keystone()._client.user_id
+            else:
+                owner_uuids = override_owner_uuid
         else:
             owner_uuids = self.properties.get(self.OWNER_UUIDS)
         name = self.properties.get(self.NAME) + '.' + uuid.uuid4().__str__()
@@ -569,7 +572,7 @@ class SDCSmartMachine(SDCMachine):
             # add stack id to avoid alias collisions
             alias = alias + '-' + self.stack.id
         if not alias:
-            alias = uuid.uuid4().__str__()
+            alias = uuid.uuid4().__str__() + '-' + self.stack.id
 
         logger.debug(_("Trying to create a Machine with "
                        "owner: %s, "
@@ -621,7 +624,7 @@ class SDCKVM(SDCMachine):
             # add stack id to avoid alias collisions
             alias = alias + '-' + self.stack.id
         if not alias:
-            alias = uuid.uuid4().__str__()
+            alias = uuid.uuid4().__str__() + '-' + self.stack.id
 
         logger.debug(_("Trying to create a Machine with "
                        "owner: %s, "
