@@ -23,8 +23,8 @@ from ConfigParser import SafeConfigParser
 
 from heat.engine import properties
 from heat.engine import resource
-from heat.openstack.common.gettextutils import _
-from heat.openstack.common import log as logging
+from heat.common.i18n import _
+from oslo_log import log as logging
 
 logger = logging.getLogger(__name__)
 
@@ -59,6 +59,7 @@ if cfg_parser.get('OVERRIDE', 'override_endpoints') == 'True':
     override_vmapi_endpoint = cfg_parser.get('OVERRIDE', 'override_vmapi_endpoint')
 else:
     override_endpoints = False
+
 
 class SDCNetwork(resource.Resource):
 
@@ -614,11 +615,16 @@ class SDCKVM(SDCMachine):
         alias = self.properties.get(self.INSTANCE_ALIAS)
         user_script = self.properties.get(self.USER_SCRIPT)
 
-        ssh_keys = []
-        for key in self.nova().keypairs.list():
-            ssh_keys.append(key.public_key)
-        if len(ssh_keys) == 0:
-            ssh_keys = False
+        ssh_keys = False
+        if not real_owner:
+            ssh_keys = []
+            try:
+                for key in self.nova().keypairs.list():
+                    ssh_keys.append(key.public_key)
+            except:
+                pass
+            if len(ssh_keys) == 0:
+                    ssh_keys = False
 
         if alias:
             # add stack id to avoid alias collisions
