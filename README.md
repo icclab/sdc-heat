@@ -15,7 +15,7 @@ SSH as root into the machine once provisioned. Make sure networking is working (
 
 ```
 yum update -y
-yum install -y https://rdo.fedorapeople.org/rdo-release.rpm
+yum install -y https://repos.fedorapeople.org/repos/openstack/openstack-kilo/rdo-release-kilo-1.noarch.rpm
 yum install -y openstack-packstack
 ```
 

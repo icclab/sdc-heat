@@ -23,12 +23,14 @@ from ConfigParser import SafeConfigParser
 
 from heat.engine import properties
 from heat.engine import resource
-from heat.openstack.common.gettextutils import _
-from heat.openstack.common import log as logging
+from heat.common.i18n import _
+from oslo_log import log as logging
 
 logger = logging.getLogger(__name__)
 
-SDC_CONFIG_FILE = '/usr/lib/heat/sdc_plugin.conf'
+#TODO: improve cfg-loading
+SDC_CONFIG_FILE = '/opt/heat/plugins/sdc_plugin.conf'
+#SDC_CONFIG_FILE = '/usr/lib/heat/sdc_plugin.conf'
 
 cfg_parser = SafeConfigParser()
 cfg_parser.read(SDC_CONFIG_FILE)
@@ -45,12 +47,19 @@ if cfg_parser.get('OVERRIDE', 'override_owner') == 'True':
 else:
     override_owner = False
 
+if cfg_parser.get('OVERRIDE', 'real_owner') == 'True':
+    real_owner = True
+else:
+    real_owner = False
+
+
 if cfg_parser.get('OVERRIDE', 'override_endpoints') == 'True':
     override_endpoints = True
     override_sapi_endpoint = cfg_parser.get('OVERRIDE', 'override_sapi_endpoint')
     override_vmapi_endpoint = cfg_parser.get('OVERRIDE', 'override_vmapi_endpoint')
 else:
     override_endpoints = False
+
 
 class SDCNetwork(resource.Resource):
 
@@ -60,25 +69,6 @@ class SDCNetwork(resource.Resource):
          'vlan', 'resolvers', 'routes', 'description')
 
     properties_schema = {
-
-        SAPI_ENDPOINT: properties.Schema(
-            properties.Schema.STRING,
-            _('The URL for the RESTful Service API.'),
-            required = not override_endpoints
-        ),
-
-        VMAPI_ENDPOINT: properties.Schema(
-            properties.Schema.STRING,
-            _('The URL for the RESTful VM API.'),
-            required = not override_endpoints
-        ),
-
-        OWNER_UUIDS: properties.Schema(
-            properties.Schema.STRING,
-            _('UUIDs of the new network, comma separated.'),
-            required=not override_owner
-        ),
-
         NAME: properties.Schema(
             properties.Schema.STRING,
             _('The network name.'),
@@ -138,6 +128,27 @@ class SDCNetwork(resource.Resource):
             default=''
         )
     }
+    if not override_endpoints:
+        properties_schema.update({
+            SAPI_ENDPOINT: properties.Schema(
+            properties.Schema.STRING,
+            _('The URL for the RESTful Service API.'),
+            required = True
+            ),
+            VMAPI_ENDPOINT: properties.Schema(
+                properties.Schema.STRING,
+                _('The URL for the RESTful VM API.'),
+                required = True
+            )
+        })
+    if not override_owner:
+        properties_schema.update({
+            OWNER_UUIDS: properties.Schema(
+                properties.Schema.STRING,
+                _('UUIDs of the new network, comma separated.'),
+                required=not override_owner
+            )
+        })
 
     attributes_schema = {
         'uuid': _('uuid')
@@ -245,25 +256,6 @@ class SDCSmartNetwork(SDCNetwork):
         ('sapi_endpoint', 'vmapi_endpoint', 'owner_uuids', 'name', 'mask_bits', 'description')
 
     properties_schema = {
-
-        SAPI_ENDPOINT: properties.Schema(
-            properties.Schema.STRING,
-            _('The URL for the RESTful Service API.'),
-            required=not override_endpoints
-        ),
-
-        VMAPI_ENDPOINT: properties.Schema(
-            properties.Schema.STRING,
-            _('The URL for the RESTful Service API.'),
-            required=not override_endpoints
-        ),
-
-        OWNER_UUIDS: properties.Schema(
-            properties.Schema.STRING,
-            _('UUIDs of the new network, comma separated.'),
-            required=not override_owner
-        ),
-
         NAME: properties.Schema(
             properties.Schema.STRING,
             _('The network name.'),
@@ -284,6 +276,27 @@ class SDCSmartNetwork(SDCNetwork):
             default=''
         )
     }
+    if not override_endpoints:
+        properties_schema.update({
+            SAPI_ENDPOINT: properties.Schema(
+            properties.Schema.STRING,
+            _('The URL for the RESTful Service API.'),
+            required = True
+            ),
+            VMAPI_ENDPOINT: properties.Schema(
+                properties.Schema.STRING,
+                _('The URL for the RESTful VM API.'),
+                required = True
+            )
+        })
+    if not override_owner:
+        properties_schema.update({
+            OWNER_UUIDS: properties.Schema(
+                properties.Schema.STRING,
+                _('UUIDs of the new network, comma separated.'),
+                required=not override_owner
+            )
+        })
 
     def handle_create(self):
 
@@ -293,7 +306,10 @@ class SDCSmartNetwork(SDCNetwork):
 
         sapi_endpoint = self.properties.get(self.SAPI_ENDPOINT)
         if override_owner:
-            owner_uuids = override_owner_uuid
+            if real_owner:
+                owner_uuids = self.keystone()._client.user_id
+            else:
+                owner_uuids = override_owner_uuid
         else:
             owner_uuids = self.properties.get(self.OWNER_UUIDS)
         name = self.properties.get(self.NAME) + '.' + uuid.uuid4().__str__()
@@ -320,25 +336,6 @@ class SDCMachine(resource.Resource):
         ('sapi_endpoint', 'vmapi_endpoint', 'user_uuid', 'instance_alias', 'package', 'image', 'networks', 'user_script')
 
     properties_schema = {
-
-        SAPI_ENDPOINT: properties.Schema(
-            properties.Schema.STRING,
-            _('The URL for the RESTful Service API.'),
-            required=not override_endpoints
-        ),
-
-        VMAPI_ENDPOINT: properties.Schema(
-            properties.Schema.STRING,
-            _('The URL for the RESTful Service API.'),
-            required=not override_endpoints
-        ),
-
-        USER_UUID: properties.Schema(
-            properties.Schema.STRING,
-            _('User UUID.'),
-            required=not override_owner
-        ),
-
         INSTANCE_ALIAS: properties.Schema(
             properties.Schema.STRING,
             _('The instance name.'),
@@ -372,6 +369,28 @@ class SDCMachine(resource.Resource):
 
     }
 
+    if not override_endpoints:
+        properties_schema.update({
+            SAPI_ENDPOINT: properties.Schema(
+            properties.Schema.STRING,
+            _('The URL for the RESTful Service API.'),
+            required = True
+            ),
+            VMAPI_ENDPOINT: properties.Schema(
+                properties.Schema.STRING,
+                _('The URL for the RESTful VM API.'),
+                required = True
+            )
+        })
+    if not override_owner:
+        properties_schema.update({
+            USER_UUID: properties.Schema(
+                properties.Schema.STRING,
+                _('User UUID.'),
+                required=True
+            )
+        })
+
     def _get_dc(self):
         if override_endpoints:
             sapi_endpoint = override_sapi_endpoint
@@ -396,10 +415,22 @@ class SDCMachine(resource.Resource):
         if machine:
             if name == 'network_ip':
                 return machine.nics[0].get('ip')
+            if name == 'external_ip':
+                try:
+                    return ','.join([nic.get('ip') for nic in machine.nics if nic.get('nic_tag') == 'external'])
+                except:
+                    return ''
+            if name == 'internal_ip':
+                 try:
+                    return ','.join([nic.get('ip') for nic in machine.nics if nic.get('nic_tag') == 'customer'])
+                 except:
+                    return ''
             return getattr(machine, name)
 
     attributes_schema = {
-        'network_ip': _('ip address')
+        'network_ip': _('ip address'),
+        'external_ip': _('external ip address'),
+        'internal_ip': _('internal ip address')
     }
 
     # def handle_create(self): <- is handled in SDCSmartMachine and SDCKVM
@@ -515,7 +546,10 @@ class SDCSmartMachine(SDCMachine):
         dc = self._get_dc()
 
         if override_owner:
-            user_uuid = override_owner_uuid
+            if real_owner:
+                user_uuid = self.keystone()._client.user_id
+            else:
+                user_uuid = override_owner_uuid
         else:
             user_uuid = self.properties.get(self.USER_UUID)
         networks = self.properties.get(self.NETWORKS).split(',')
@@ -524,16 +558,22 @@ class SDCSmartMachine(SDCMachine):
         alias = self.properties.get(self.INSTANCE_ALIAS)
         user_script = self.properties.get(self.USER_SCRIPT)
 
-        ssh_keys = []
-        try:
-            for key in self.nova().keypairs.list():
-                ssh_keys.append(key.public_key)
-        except:
-            pass
-        if len(ssh_keys) == 0:
-                ssh_keys = False
+        ssh_keys = False
+        if not real_owner:
+            ssh_keys = []
+            try:
+                for key in self.nova().keypairs.list():
+                    ssh_keys.append(key.public_key)
+            except:
+                pass
+            if len(ssh_keys) == 0:
+                    ssh_keys = False
+
+        if alias:
+            # add stack id to avoid alias collisions
+            alias = alias + '-' + self.stack.id
         if not alias:
-            alias = uuid.uuid4().__str__()
+            alias = uuid.uuid4().__str__() + '-' + self.stack.id
 
         logger.debug(_("Trying to create a Machine with "
                        "owner: %s, "
@@ -575,14 +615,22 @@ class SDCKVM(SDCMachine):
         alias = self.properties.get(self.INSTANCE_ALIAS)
         user_script = self.properties.get(self.USER_SCRIPT)
 
-        ssh_keys = []
-        for key in self.nova().keypairs.list():
-            ssh_keys.append(key.public_key)
-        if len(ssh_keys) == 0:
-            ssh_keys = False
+        ssh_keys = False
+        if not real_owner:
+            ssh_keys = []
+            try:
+                for key in self.nova().keypairs.list():
+                    ssh_keys.append(key.public_key)
+            except:
+                pass
+            if len(ssh_keys) == 0:
+                    ssh_keys = False
 
+        if alias:
+            # add stack id to avoid alias collisions
+            alias = alias + '-' + self.stack.id
         if not alias:
-            alias = uuid.uuid4().__str__()
+            alias = uuid.uuid4().__str__() + '-' + self.stack.id
 
         logger.debug(_("Trying to create a Machine with "
                        "owner: %s, "
